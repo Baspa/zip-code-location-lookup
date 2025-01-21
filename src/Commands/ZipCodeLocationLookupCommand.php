@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Baspa\ZipCodeLocationLookup\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class ZipCodeLocationLookupCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'zip-code-location-lookup';
 
     public $description = 'My command';
 
