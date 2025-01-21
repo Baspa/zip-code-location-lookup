@@ -2,13 +2,14 @@
 
 namespace Baspa\ZipCodeLocationLookup;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 
 class ZipCodeLocationLookup
 {
     protected string $googleMapsApiKey;
+
     protected string $postcodeTechApiKey;
 
     public function __construct()
@@ -22,8 +23,8 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param string $zipCode
      * @return array<string, mixed>
+     *
      * @throws InvalidArgumentException
      */
     public function lookup(string $zipCode): array
@@ -43,20 +44,18 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param string $zipCode
      * @return array<string, mixed>
      */
     protected function getPostcodeTechResponse(string $zipCode): array
     {
-        $response = Http::get('https://api.postcode.tech/v1/postcode?postcode=' . urlencode($zipCode), [
-            'Authorization' => 'Bearer ' . $this->postcodeTechApiKey,
+        $response = Http::get('https://api.postcode.tech/v1/postcode?postcode='.urlencode($zipCode), [
+            'Authorization' => 'Bearer '.$this->postcodeTechApiKey,
         ]);
 
         return $this->parsePostcodeTechResponse($response);
     }
 
     /**
-     * @param string $postcode
      * @return array<string, float>|null
      */
     protected function getGoogleMapsResponse(string $postcode): ?array
@@ -70,35 +69,36 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param Response $response
      * @return array<string, mixed>
+     *
      * @throws InvalidArgumentException
      */
     protected function parsePostcodeTechResponse(Response $response): array
     {
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new InvalidArgumentException('Failed to fetch data from Postcode.tech API');
         }
+
         return $response->json();
     }
 
     /**
-     * @param Response $response
      * @return array<string, float>|null
      */
     protected function parseGoogleMapsResponse(Response $response): ?array
     {
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return null;
         }
 
         $data = $response->json();
 
-        if ($data['status'] === 'OK' && !empty($data['results'][0]['geometry']['location'])) {
+        if ($data['status'] === 'OK' && ! empty($data['results'][0]['geometry']['location'])) {
             $location = $data['results'][0]['geometry']['location'];
+
             return [
-                'lat' => (float)$location['lat'],
-                'lng' => (float)$location['lng']
+                'lat' => (float) $location['lat'],
+                'lng' => (float) $location['lng'],
             ];
         }
 
@@ -106,8 +106,8 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param array<string, mixed> $postcodeTechResponse
-     * @param array<string, float> $googleMapsResponse
+     * @param  array<string, mixed>  $postcodeTechResponse
+     * @param  array<string, float>  $googleMapsResponse
      * @return array<string, mixed>
      */
     protected function mergeResponses(array $postcodeTechResponse, array $googleMapsResponse): array
