@@ -27,13 +27,13 @@ class ZipCodeLocationLookup
      *
      * @throws InvalidArgumentException
      */
-    public function lookup(string $zipCode): array
+    public function lookup(string $zipCode, int $number): array
     {
         if (empty($zipCode)) {
             throw new InvalidArgumentException('Zip code cannot be empty');
         }
 
-        $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode);
+        $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
         $googleMapsResponse = $this->getGoogleMapsResponse($postcodeTechResponse['postcode']);
 
         if ($googleMapsResponse === null) {
@@ -46,11 +46,11 @@ class ZipCodeLocationLookup
     /**
      * @return array<string, mixed>
      */
-    protected function getPostcodeTechResponse(string $zipCode): array
+    protected function getPostcodeTechResponse(string $zipCode, int $number): array
     {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->postcodeTechApiKey,
-        ])->get('https://postcode.tech/api/v1/postcode?postcode=' . urlencode($zipCode));
+        ])->get('https://postcode.tech/api/v1/postcode?postcode=' . urlencode($zipCode) . '&number=' . $number);
 
         return $this->parsePostcodeTechResponse($response);
     }
@@ -76,7 +76,10 @@ class ZipCodeLocationLookup
     protected function parsePostcodeTechResponse(Response $response): array
     {
         if (! $response->successful()) {
-            throw new InvalidArgumentException('Failed to fetch data from Postcode.tech API');
+            throw new InvalidArgumentException(
+                'Failed to fetch data from Postcode.tech API: ' . $response->body(),
+                $response->status()
+            );
         }
 
         return $response->json();

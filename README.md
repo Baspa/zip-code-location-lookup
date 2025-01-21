@@ -47,7 +47,7 @@ use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookup;
 $lookup = new ZipCodeLocationLookup();
 
 // Lookup a zip code
-$result = $lookup->lookup('1011AB');
+$result = $lookup->lookup(zipCode: '1011AB', number: 1);
 
 // Returns an array containing:
 // - postcode: The normalized postcode
