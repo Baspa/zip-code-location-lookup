@@ -42,8 +42,30 @@ return [
 ## Usage
 
 ```php
-$zipCodeLocationLookup = new Baspa\ZipCodeLocationLookup();
-echo $zipCodeLocationLookup->echoPhrase('Hello, Baspa!');
+use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookup;
+
+$lookup = new ZipCodeLocationLookup();
+
+// Lookup a zip code
+$result = $lookup->lookup('1011AB');
+
+// Returns an array containing:
+// - postcode: The normalized postcode
+// - street: Street name
+// - city: City name
+// - municipality: Municipality name
+// - province: Province name
+// - lat: Latitude coordinate
+// - lng: Longitude coordinate
+$result = [
+    'postcode' => '1011 AB',
+    'street' => 'Dam',
+    'city' => 'Amsterdam',
+    'municipality' => 'Amsterdam',
+    'province' => 'Noord-Holland',
+    'lat' => 52.373169,
+    'lng' => 4.893379
+];
 ```
 
 ## Testing
