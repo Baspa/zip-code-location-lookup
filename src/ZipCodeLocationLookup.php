@@ -49,8 +49,8 @@ class ZipCodeLocationLookup
     protected function getPostcodeTechResponse(string $zipCode, int $number): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->postcodeTechApiKey,
-        ])->get('https://postcode.tech/api/v1/postcode?postcode=' . urlencode($zipCode) . '&number=' . $number);
+            'Authorization' => 'Bearer '.$this->postcodeTechApiKey,
+        ])->get('https://postcode.tech/api/v1/postcode?postcode='.urlencode($zipCode).'&number='.$number);
 
         return $this->parsePostcodeTechResponse($response);
     }
@@ -62,7 +62,7 @@ class ZipCodeLocationLookup
     {
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
-            'address' => urlencode($address['street'] . ' ' . $number . ' ' . $zipCode . ' ' . $address['city']),
+            'address' => urlencode($address['street'].' '.$number.' '.$zipCode.' '.$address['city']),
         ]);
 
         return $this->parseGoogleMapsResponse($response);
@@ -77,7 +77,7 @@ class ZipCodeLocationLookup
     {
         if (! $response->successful()) {
             throw new InvalidArgumentException(
-                'Failed to fetch data from Postcode.tech API: ' . $response->body(),
+                'Failed to fetch data from Postcode.tech API: '.$response->body(),
                 $response->status()
             );
         }
@@ -113,7 +113,7 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param array<int, array<string, mixed>> $components
+     * @param  array<int, array<string, mixed>>  $components
      * @return array<string, string>
      */
     protected function parseAddressComponents(array $components): array
