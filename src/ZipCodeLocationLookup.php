@@ -34,7 +34,7 @@ class ZipCodeLocationLookup
         }
 
         $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
-        $googleMapsResponse = $this->getGoogleMapsResponse($postcodeTechResponse['postcode']);
+        $googleMapsResponse = $this->getGoogleMapsResponse($postcodeTechResponse, $zipCode, $number);
 
         if ($googleMapsResponse === null) {
             throw new InvalidArgumentException('Unable to geocode the provided zip code');
@@ -58,11 +58,11 @@ class ZipCodeLocationLookup
     /**
      * @return array<string, float>|null
      */
-    protected function getGoogleMapsResponse(string $postcode): ?array
+    protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
-            'address' => urlencode($postcode),
+            'address' => urlencode($address['street'] . ' ' . $number . ' ' . $zipCode . ' ' . $address['city']),
         ]);
 
         return $this->parseGoogleMapsResponse($response);
@@ -86,7 +86,7 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @return array<string, float>|null
+     * @return array<string, mixed>|null
      */
     protected function parseGoogleMapsResponse(Response $response): ?array
     {
@@ -96,16 +96,67 @@ class ZipCodeLocationLookup
 
         $data = $response->json();
 
-        if ($data['status'] === 'OK' && ! empty($data['results'][0]['geometry']['location'])) {
-            $location = $data['results'][0]['geometry']['location'];
+        if ($data['status'] === 'OK' && ! empty($data['results'][0])) {
+            $result = $data['results'][0];
+            $location = $result['geometry']['location'];
+            $addressComponents = $this->parseAddressComponents($result['address_components']);
 
             return [
                 'lat' => (float) $location['lat'],
                 'lng' => (float) $location['lng'],
+                'formatted_address' => $result['formatted_address'],
+                'address_components' => $addressComponents,
             ];
         }
 
         return null;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $components
+     * @return array<string, string>
+     */
+    protected function parseAddressComponents(array $components): array
+    {
+        $address = [
+            'street_number' => '',
+            'street_name' => '',
+            'city' => '',
+            'municipality' => '',
+            'province' => '',
+            'country' => '',
+            'postal_code' => '',
+        ];
+
+        foreach ($components as $component) {
+            $type = $component['types'][0] ?? '';
+
+            switch ($type) {
+                case 'street_number':
+                    $address['street_number'] = $component['long_name'];
+                    break;
+                case 'route':
+                    $address['street_name'] = $component['long_name'];
+                    break;
+                case 'locality':
+                    $address['city'] = $component['long_name'];
+                    break;
+                case 'administrative_area_level_2':
+                    $address['municipality'] = $component['long_name'];
+                    break;
+                case 'administrative_area_level_1':
+                    $address['province'] = $component['long_name'];
+                    break;
+                case 'country':
+                    $address['country'] = $component['long_name'];
+                    break;
+                case 'postal_code':
+                    $address['postal_code'] = $component['long_name'];
+                    break;
+            }
+        }
+
+        return $address;
     }
 
     /**
