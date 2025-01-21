@@ -48,9 +48,9 @@ class ZipCodeLocationLookup
      */
     protected function getPostcodeTechResponse(string $zipCode): array
     {
-        $response = Http::get('https://api.postcode.tech/v1/postcode?postcode='.urlencode($zipCode), [
-            'Authorization' => 'Bearer '.$this->postcodeTechApiKey,
-        ]);
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->postcodeTechApiKey,
+        ])->get('https://postcode.tech/api/v1/postcode?postcode=' . urlencode($zipCode));
 
         return $this->parsePostcodeTechResponse($response);
     }
