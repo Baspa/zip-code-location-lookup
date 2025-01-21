@@ -2,9 +2,9 @@
 
 namespace Baspa\ZipCodeLocationLookup;
 
+use Baspa\ZipCodeLocationLookup\Commands\ZipCodeLocationLookupCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Baspa\ZipCodeLocationLookup\Commands\ZipCodeLocationLookupCommand;
 
 class ZipCodeLocationLookupServiceProvider extends PackageServiceProvider
 {

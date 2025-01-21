@@ -2,9 +2,9 @@
 
 namespace Baspa\ZipCodeLocationLookup\Tests;
 
+use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookupServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookupServiceProvider;
 
 class TestCase extends Orchestra
 {
