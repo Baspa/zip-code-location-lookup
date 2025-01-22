@@ -44,7 +44,7 @@ class ZipCodeLocationLookup
 
         $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
 
-        if (!$this->useGoogleMaps) {
+        if (! $this->useGoogleMaps) {
             return $postcodeTechResponse;
         }
 
@@ -70,7 +70,7 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param array<string, string> $address
+     * @param  array<string, string>  $address
      * @return array<string, float>|null
      */
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
@@ -185,8 +185,7 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @param array<string, mixed> $response
-     * @return string
+     * @param  array<string, mixed>  $response
      */
     protected function formatResponse(array $response): string
     {
@@ -194,6 +193,7 @@ class ZipCodeLocationLookup
         if ($json === false) {
             throw new \RuntimeException('Failed to encode response to JSON');
         }
+
         return $json;
     }
 }
