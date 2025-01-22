@@ -44,7 +44,11 @@ return [
 ```php
 use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookup;
 
+// With Google Maps integration (default)
 $lookup = new ZipCodeLocationLookup();
+
+// Without Google Maps integration
+$lookup = new ZipCodeLocationLookup(false);
 
 // Lookup a zip code
 $result = $lookup->lookup(zipCode: '1011AB', number: 1);

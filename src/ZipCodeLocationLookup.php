@@ -12,13 +12,22 @@ class ZipCodeLocationLookup
 
     protected string $postcodeTechApiKey;
 
-    public function __construct()
+    protected bool $useGoogleMaps = true;
+
+    public function __construct(bool $useGoogleMaps = true)
     {
-        $this->googleMapsApiKey = config('services.google.api_key');
+        $this->useGoogleMaps = $useGoogleMaps;
         $this->postcodeTechApiKey = config('services.postcode_tech.api_key');
 
-        if (empty($this->googleMapsApiKey) || empty($this->postcodeTechApiKey)) {
-            throw new InvalidArgumentException('API keys must be configured in services config');
+        if (empty($this->postcodeTechApiKey)) {
+            throw new InvalidArgumentException('Postcode.tech API key must be configured in services config');
+        }
+
+        if ($useGoogleMaps) {
+            $this->googleMapsApiKey = config('services.google.api_key');
+            if (empty($this->googleMapsApiKey)) {
+                throw new InvalidArgumentException('Google Maps API key must be configured in services config');
+            }
         }
     }
 
@@ -34,6 +43,11 @@ class ZipCodeLocationLookup
         }
 
         $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
+
+        if (!$this->useGoogleMaps) {
+            return $postcodeTechResponse;
+        }
+
         $googleMapsResponse = $this->getGoogleMapsResponse($postcodeTechResponse, $zipCode, $number);
 
         if ($googleMapsResponse === null) {
@@ -56,6 +70,7 @@ class ZipCodeLocationLookup
     }
 
     /**
+     * @param array<string, string> $address
      * @return array<string, float>|null
      */
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
@@ -169,8 +184,16 @@ class ZipCodeLocationLookup
         return array_merge($postcodeTechResponse, $googleMapsResponse);
     }
 
-    protected function formatResponse($response)
+    /**
+     * @param array<string, mixed> $response
+     * @return string
+     */
+    protected function formatResponse(array $response): string
     {
-        return json_encode($response);
+        $json = json_encode($response);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to encode response to JSON');
+        }
+        return $json;
     }
 }
