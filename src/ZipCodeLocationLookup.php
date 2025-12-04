@@ -47,14 +47,22 @@ class ZipCodeLocationLookup
         } catch (InvalidArgumentException $e) {
             if ($this->useGoogleMaps) {
                 $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
-                
+
                 if ($googleMapsResponse !== null) {
                     $country = $googleMapsResponse['address_components']['country'];
-                    
-                    if ($country === 'Netherlands' || $country === 'NL') $country = 'NLD';
-                    if ($country === 'Belgium' || $country === 'BE') $country = 'BEL';
-                    if ($country === 'Germany' || $country === 'DE') $country = 'DEU';
-                    if ($country === 'Luxembourg' || $country === 'LU') $country = 'LUX';
+
+                    if ($country === 'Netherlands' || $country === 'NL') {
+                        $country = 'NLD';
+                    }
+                    if ($country === 'Belgium' || $country === 'BE') {
+                        $country = 'BEL';
+                    }
+                    if ($country === 'Germany' || $country === 'DE') {
+                        $country = 'DEU';
+                    }
+                    if ($country === 'Luxembourg' || $country === 'LU') {
+                        $country = 'LUX';
+                    }
 
                     return [
                         'street' => $googleMapsResponse['address_components']['street_name'],
@@ -104,7 +112,7 @@ class ZipCodeLocationLookup
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
         if (empty($address)) {
-            $query = $zipCode . ' ' . $number . ', Netherlands';
+            $query = $zipCode.' '.$number.', Netherlands';
         } else {
             $query = $address['street'].' '.$number.' '.$zipCode.' '.$address['city'];
         }
