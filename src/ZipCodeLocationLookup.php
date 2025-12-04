@@ -116,16 +116,59 @@ class ZipCodeLocationLookup
 
         $result = $this->parseGoogleMapsResponse($response);
 
-        if ($result !== null && empty($result['address_components']['street_name']) && ! empty($result['lat']) && ! empty($result['lng'])) {
-            $reverseResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+        if ($result !== null && empty($result['address_components']['street_name'])) {
+            $foundViaPlaces = false;
+
+            // Strategy 1: Google Places API (Find Place From Text)
+            // This is accurate for text-based queries but might return a different location if not found.
+            $placesResponse = Http::get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', [
                 'key' => $this->googleMapsApiKey,
-                'latlng' => $result['lat'].','.$result['lng'],
+                'input' => $query,
+                'inputtype' => 'textquery',
+                'fields' => 'place_id',
             ]);
 
-            $reverseResult = $this->parseGoogleMapsResponse($reverseResponse);
+            $placesData = $placesResponse->json();
 
-            if ($reverseResult !== null && ! empty($reverseResult['address_components']['street_name'])) {
-                $result['address_components']['street_name'] = $reverseResult['address_components']['street_name'];
+            if ($placesData['status'] === 'OK' && !empty($placesData['candidates'][0]['place_id'])) {
+                $placeId = $placesData['candidates'][0]['place_id'];
+
+                // Fetch Place Details to get address components
+                $detailsResponse = Http::get('https://maps.googleapis.com/maps/api/place/details/json', [
+                    'key' => $this->googleMapsApiKey,
+                    'place_id' => $placeId,
+                    'fields' => 'address_component,formatted_address,geometry',
+                ]);
+
+                $detailsResult = $this->parseGoogleMapsResponse($detailsResponse);
+
+                if ($detailsResult !== null && !empty($detailsResult['address_components']['street_name'])) {
+                    // Verify if the returned postcode matches the input postcode (ignoring spaces)
+                    $returnedZip = str_replace(' ', '', $detailsResult['address_components']['postal_code'] ?? '');
+                    $inputZip = str_replace(' ', '', $zipCode);
+
+                    // If postcodes match (at least the numbers), accept it. 
+                    // Checking full match for safety.
+                    if (stripos($returnedZip, $inputZip) !== false || stripos($inputZip, $returnedZip) !== false) {
+                        $result = $detailsResult;
+                        $foundViaPlaces = true;
+                    }
+                }
+            }
+
+            // Strategy 2: Reverse Geocoding (Fallback if Places failed or mismatched)
+            // This snaps to the nearest street from the centroid coordinates.
+            if (!$foundViaPlaces && !empty($result['lat']) && !empty($result['lng'])) {
+                $reverseResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+                    'key' => $this->googleMapsApiKey,
+                    'latlng' => $result['lat'].','.$result['lng'],
+                ]);
+
+                $reverseResult = $this->parseGoogleMapsResponse($reverseResponse);
+
+                if ($reverseResult !== null && !empty($reverseResult['address_components']['street_name'])) {
+                    $result['address_components']['street_name'] = $reverseResult['address_components']['street_name'];
+                }
             }
         }
 
@@ -160,8 +203,15 @@ class ZipCodeLocationLookup
 
         $data = $response->json();
 
-        if ($data['status'] === 'OK' && ! empty($data['results'][0])) {
+        // Handle both Geocoding API (results) and Place Details API (result) formats
+        $result = null;
+        if (isset($data['result'])) {
+            $result = $data['result'];
+        } elseif (isset($data['results'][0])) {
             $result = $data['results'][0];
+        }
+
+        if ($result && $data['status'] === 'OK') {
             $location = $result['geometry']['location'];
             $addressComponents = $this->parseAddressComponents($result['address_components']);
 
