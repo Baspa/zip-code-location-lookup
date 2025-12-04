@@ -47,22 +47,14 @@ class ZipCodeLocationLookup
         } catch (InvalidArgumentException $e) {
             if ($this->useGoogleMaps) {
                 $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
-
+                
                 if ($googleMapsResponse !== null) {
                     $country = $googleMapsResponse['address_components']['country'];
-
-                    if ($country === 'Netherlands' || $country === 'NL') {
-                        $country = 'NLD';
-                    }
-                    if ($country === 'Belgium' || $country === 'BE') {
-                        $country = 'BEL';
-                    }
-                    if ($country === 'Germany' || $country === 'DE') {
-                        $country = 'DEU';
-                    }
-                    if ($country === 'Luxembourg' || $country === 'LU') {
-                        $country = 'LUX';
-                    }
+                    
+                    if ($country === 'Netherlands' || $country === 'NL') $country = 'NLD';
+                    if ($country === 'Belgium' || $country === 'BE') $country = 'BEL';
+                    if ($country === 'Germany' || $country === 'DE') $country = 'DEU';
+                    if ($country === 'Luxembourg' || $country === 'LU') $country = 'LUX';
 
                     return [
                         'street' => $googleMapsResponse['address_components']['street_name'],
@@ -112,7 +104,7 @@ class ZipCodeLocationLookup
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
         if (empty($address)) {
-            $query = $zipCode.' '.$number.', Netherlands';
+            $query = $zipCode . ' ' . $number . ', Netherlands';
         } else {
             $query = $address['street'].' '.$number.' '.$zipCode.' '.$address['city'];
         }
@@ -128,7 +120,7 @@ class ZipCodeLocationLookup
             $foundViaPlaces = false;
 
             // Strategy 1: Google Places API (Find Place From Text)
-            // This is accurate for text-based queries but might return a different location if not found.
+            // This is more accurate for text-based queries where Geocoding API returns a postcode centroid
             $placesResponse = Http::get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', [
                 'key' => $this->googleMapsApiKey,
                 'input' => $query,
@@ -155,11 +147,28 @@ class ZipCodeLocationLookup
                     $returnedZip = str_replace(' ', '', $detailsResult['address_components']['postal_code'] ?? '');
                     $inputZip = str_replace(' ', '', $zipCode);
 
-                    // If postcodes match (at least the numbers), accept it. 
-                    // Checking full match for safety.
                     if (stripos($returnedZip, $inputZip) !== false || stripos($inputZip, $returnedZip) !== false) {
                         $result = $detailsResult;
                         $foundViaPlaces = true;
+
+                        // Check if the house number matches
+                        $returnedNumber = $detailsResult['address_components']['street_number'] ?? '';
+                        if ($returnedNumber != $number) {
+                            // If house number mismatches, try to geocode specifically with the found street name
+                            // This ensures we get the location of the requested number, not the one Places API snapped to.
+                            $streetQuery = $detailsResult['address_components']['street_name'] . ' ' . $number . ', ' . $detailsResult['address_components']['city'] . ', Netherlands';
+                            
+                            $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+                                'key' => $this->googleMapsApiKey,
+                                'address' => urlencode($streetQuery),
+                            ]);
+
+                            $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
+
+                            if ($streetGeocodeResult !== null && !empty($streetGeocodeResult['lat'])) {
+                                $result = $streetGeocodeResult;
+                            }
+                        }
                     }
                 }
             }
