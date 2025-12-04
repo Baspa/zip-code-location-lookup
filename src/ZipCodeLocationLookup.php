@@ -42,19 +42,19 @@ class ZipCodeLocationLookup
             throw new InvalidArgumentException('Zip code cannot be empty');
         }
 
-        if (!$this->useGoogleMaps) {
+        if (! $this->useGoogleMaps) {
             throw new InvalidArgumentException('Google Maps is required for address lookup');
         }
 
         // Use Google Maps for all addresses (Dutch and non-Dutch)
         $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
-        
+
         if ($googleMapsResponse === null) {
             throw new InvalidArgumentException('Unable to geocode the provided zip code');
         }
 
         $country = $googleMapsResponse['address_components']['country'];
-        
+
         if ($country === 'Netherlands' || $country === 'NL') {
             $country = 'NLD';
         }
@@ -100,7 +100,7 @@ class ZipCodeLocationLookup
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
         if (empty($address)) {
-            $query = $zipCode . ' ' . $number . ', Netherlands';
+            $query = $zipCode.' '.$number.', Netherlands';
         } else {
             $query = $address['street'].' '.$number.' '.$zipCode.' '.$address['city'];
         }
@@ -126,7 +126,7 @@ class ZipCodeLocationLookup
 
             $placesData = $placesResponse->json();
 
-            if ($placesData['status'] === 'OK' && !empty($placesData['candidates'][0]['place_id'])) {
+            if ($placesData['status'] === 'OK' && ! empty($placesData['candidates'][0]['place_id'])) {
                 $placeId = $placesData['candidates'][0]['place_id'];
 
                 // Fetch Place Details to get address components
@@ -138,7 +138,7 @@ class ZipCodeLocationLookup
 
                 $detailsResult = $this->parseGoogleMapsResponse($detailsResponse);
 
-                if ($detailsResult !== null && !empty($detailsResult['address_components']['street_name'])) {
+                if ($detailsResult !== null && ! empty($detailsResult['address_components']['street_name'])) {
                     // Verify if the returned postcode matches the input postcode (ignoring spaces)
                     $returnedZip = str_replace(' ', '', $detailsResult['address_components']['postal_code'] ?? '');
                     $inputZip = str_replace(' ', '', $zipCode);
@@ -152,8 +152,8 @@ class ZipCodeLocationLookup
                         if ($returnedNumber != $number) {
                             // If house number mismatches, try to geocode specifically with the found street name
                             // This ensures we get the location of the requested number, not the one Places API snapped to.
-                            $streetQuery = $detailsResult['address_components']['street_name'] . ' ' . $number . ', ' . $detailsResult['address_components']['city'] . ', Netherlands';
-                            
+                            $streetQuery = $detailsResult['address_components']['street_name'].' '.$number.', '.$detailsResult['address_components']['city'].', Netherlands';
+
                             $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                                 'key' => $this->googleMapsApiKey,
                                 'address' => urlencode($streetQuery),
@@ -161,7 +161,7 @@ class ZipCodeLocationLookup
 
                             $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
 
-                            if ($streetGeocodeResult !== null && !empty($streetGeocodeResult['lat'])) {
+                            if ($streetGeocodeResult !== null && ! empty($streetGeocodeResult['lat'])) {
                                 $result = $streetGeocodeResult;
                             }
                         }
@@ -171,7 +171,7 @@ class ZipCodeLocationLookup
 
             // Strategy 2: Reverse Geocoding (Fallback if Places failed or mismatched)
             // This snaps to the nearest street from the centroid coordinates.
-            if (!$foundViaPlaces && !empty($result['lat']) && !empty($result['lng'])) {
+            if (! $foundViaPlaces && ! empty($result['lat']) && ! empty($result['lng'])) {
                 $reverseResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                     'key' => $this->googleMapsApiKey,
                     'latlng' => $result['lat'].','.$result['lng'],
@@ -179,12 +179,12 @@ class ZipCodeLocationLookup
 
                 $reverseResult = $this->parseGoogleMapsResponse($reverseResponse);
 
-                if ($reverseResult !== null && !empty($reverseResult['address_components']['street_name'])) {
+                if ($reverseResult !== null && ! empty($reverseResult['address_components']['street_name'])) {
                     // We found a street name via reverse geocoding
                     // Now geocode with "street + number + city" to get the exact house location
-                    $streetQuery = $reverseResult['address_components']['street_name'] . ' ' . $number . ', ' . 
+                    $streetQuery = $reverseResult['address_components']['street_name'].' '.$number.', '.
                                    ($reverseResult['address_components']['city'] ?? 'Netherlands');
-                    
+
                     $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                         'key' => $this->googleMapsApiKey,
                         'address' => urlencode($streetQuery),
@@ -192,7 +192,7 @@ class ZipCodeLocationLookup
 
                     $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
 
-                    if ($streetGeocodeResult !== null && !empty($streetGeocodeResult['lat'])) {
+                    if ($streetGeocodeResult !== null && ! empty($streetGeocodeResult['lat'])) {
                         // Use the precise coordinates from the street-based geocoding
                         $result = $streetGeocodeResult;
                     } else {
