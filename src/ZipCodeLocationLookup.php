@@ -42,47 +42,43 @@ class ZipCodeLocationLookup
             throw new InvalidArgumentException('Zip code cannot be empty');
         }
 
-        try {
-            $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
-        } catch (InvalidArgumentException $e) {
-            if ($this->useGoogleMaps) {
-                $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
-                
-                if ($googleMapsResponse !== null) {
-                    $country = $googleMapsResponse['address_components']['country'];
-                    
-                    if ($country === 'Netherlands' || $country === 'NL') $country = 'NLD';
-                    if ($country === 'Belgium' || $country === 'BE') $country = 'BEL';
-                    if ($country === 'Germany' || $country === 'DE') $country = 'DEU';
-                    if ($country === 'Luxembourg' || $country === 'LU') $country = 'LUX';
-
-                    return [
-                        'street' => $googleMapsResponse['address_components']['street_name'],
-                        'houseNumber' => $number,
-                        'postcode' => $zipCode,
-                        'city' => $googleMapsResponse['address_components']['city'],
-                        'municipality' => $googleMapsResponse['address_components']['municipality'],
-                        'province' => $googleMapsResponse['address_components']['province'],
-                        'country' => $country,
-                        'lat' => $googleMapsResponse['lat'],
-                        'lng' => $googleMapsResponse['lng'],
-                    ];
-                }
-            }
-            throw $e;
+        if (!$this->useGoogleMaps) {
+            throw new InvalidArgumentException('Google Maps is required for address lookup');
         }
 
-        if (! $this->useGoogleMaps) {
-            return $postcodeTechResponse;
-        }
-
-        $googleMapsResponse = $this->getGoogleMapsResponse($postcodeTechResponse, $zipCode, $number);
-
+        // Use Google Maps for all addresses (Dutch and non-Dutch)
+        $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
+        
         if ($googleMapsResponse === null) {
             throw new InvalidArgumentException('Unable to geocode the provided zip code');
         }
 
-        return $this->mergeResponses($postcodeTechResponse, $googleMapsResponse);
+        $country = $googleMapsResponse['address_components']['country'];
+        
+        if ($country === 'Netherlands' || $country === 'NL') {
+            $country = 'NLD';
+        }
+        if ($country === 'Belgium' || $country === 'BE') {
+            $country = 'BEL';
+        }
+        if ($country === 'Germany' || $country === 'DE') {
+            $country = 'DEU';
+        }
+        if ($country === 'Luxembourg' || $country === 'LU') {
+            $country = 'LUX';
+        }
+
+        return [
+            'street' => $googleMapsResponse['address_components']['street_name'],
+            'houseNumber' => $number,
+            'postcode' => $zipCode,
+            'city' => $googleMapsResponse['address_components']['city'],
+            'municipality' => $googleMapsResponse['address_components']['municipality'],
+            'province' => $googleMapsResponse['address_components']['province'],
+            'country' => $country,
+            'lat' => $googleMapsResponse['lat'],
+            'lng' => $googleMapsResponse['lng'],
+        ];
     }
 
     /**
@@ -184,7 +180,25 @@ class ZipCodeLocationLookup
                 $reverseResult = $this->parseGoogleMapsResponse($reverseResponse);
 
                 if ($reverseResult !== null && !empty($reverseResult['address_components']['street_name'])) {
-                    $result['address_components']['street_name'] = $reverseResult['address_components']['street_name'];
+                    // We found a street name via reverse geocoding
+                    // Now geocode with "street + number + city" to get the exact house location
+                    $streetQuery = $reverseResult['address_components']['street_name'] . ' ' . $number . ', ' . 
+                                   ($reverseResult['address_components']['city'] ?? 'Netherlands');
+                    
+                    $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+                        'key' => $this->googleMapsApiKey,
+                        'address' => urlencode($streetQuery),
+                    ]);
+
+                    $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
+
+                    if ($streetGeocodeResult !== null && !empty($streetGeocodeResult['lat'])) {
+                        // Use the precise coordinates from the street-based geocoding
+                        $result = $streetGeocodeResult;
+                    } else {
+                        // Fallback: at least update the street name from reverse geocoding
+                        $result['address_components']['street_name'] = $reverseResult['address_components']['street_name'];
+                    }
                 }
             }
         }
