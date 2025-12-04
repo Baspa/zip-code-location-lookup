@@ -42,7 +42,35 @@ class ZipCodeLocationLookup
             throw new InvalidArgumentException('Zip code cannot be empty');
         }
 
-        $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
+        try {
+            $postcodeTechResponse = $this->getPostcodeTechResponse($zipCode, $number);
+        } catch (InvalidArgumentException $e) {
+            if ($this->useGoogleMaps) {
+                $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
+                
+                if ($googleMapsResponse !== null) {
+                    $country = $googleMapsResponse['address_components']['country'];
+                    
+                    if ($country === 'Netherlands' || $country === 'NL') $country = 'NLD';
+                    if ($country === 'Belgium' || $country === 'BE') $country = 'BEL';
+                    if ($country === 'Germany' || $country === 'DE') $country = 'DEU';
+                    if ($country === 'Luxembourg' || $country === 'LU') $country = 'LUX';
+
+                    return [
+                        'street' => $googleMapsResponse['address_components']['street_name'],
+                        'houseNumber' => $number,
+                        'postcode' => $zipCode,
+                        'city' => $googleMapsResponse['address_components']['city'],
+                        'municipality' => $googleMapsResponse['address_components']['municipality'],
+                        'province' => $googleMapsResponse['address_components']['province'],
+                        'country' => $country,
+                        'lat' => $googleMapsResponse['lat'],
+                        'lng' => $googleMapsResponse['lng'],
+                    ];
+                }
+            }
+            throw $e;
+        }
 
         if (! $this->useGoogleMaps) {
             return $postcodeTechResponse;
@@ -75,12 +103,33 @@ class ZipCodeLocationLookup
      */
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
+        if (empty($address)) {
+            $query = $zipCode . ' ' . $number . ', Netherlands';
+        } else {
+            $query = $address['street'].' '.$number.' '.$zipCode.' '.$address['city'];
+        }
+
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
-            'address' => urlencode($address['street'].' '.$number.' '.$zipCode.' '.$address['city']),
+            'address' => urlencode($query),
         ]);
 
-        return $this->parseGoogleMapsResponse($response);
+        $result = $this->parseGoogleMapsResponse($response);
+
+        if ($result !== null && empty($result['address_components']['street_name']) && ! empty($result['lat']) && ! empty($result['lng'])) {
+            $reverseResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
+                'key' => $this->googleMapsApiKey,
+                'latlng' => $result['lat'].','.$result['lng'],
+            ]);
+
+            $reverseResult = $this->parseGoogleMapsResponse($reverseResponse);
+
+            if ($reverseResult !== null && ! empty($reverseResult['address_components']['street_name'])) {
+                $result['address_components']['street_name'] = $reverseResult['address_components']['street_name'];
+            }
+        }
+
+        return $result;
     }
 
     /**
