@@ -95,7 +95,7 @@ class ZipCodeLocationLookup
 
     /**
      * @param  array<string, string>  $address
-     * @return array<string, float>|null
+     * @return array<string, mixed>|null
      */
     protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
     {
