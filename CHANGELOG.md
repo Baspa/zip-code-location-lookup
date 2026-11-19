@@ -2,6 +2,24 @@
 
 All notable changes to `zip-code-location-lookup` will be documented in this file.
 
+## v0.4.0 - 2026-11-19
+
+### Breaking changes
+
+- **`new ZipCodeLocationLookup()` takes no arguments.** The `useGoogleMaps` option is gone: since v0.1.5 every lookup uses Google, and `useGoogleMaps: false` only made `lookup()` throw. Calls with `useGoogleMaps:` as a named argument must drop it.
+- **Only the Google Maps API key is needed.** `services.postcode_tech.api_key` is no longer read, so you can remove `POSTCODE_TECH_API_KEY`.
+- The protected `getPostcodeTechResponse()`, `parsePostcodeTechResponse()`, `mergeResponses()` and `formatResponse()` methods are removed, and `getGoogleMapsResponse()` no longer takes an address array. This only matters if you extend the class.
+
+### Removed
+
+- Package-skeleton leftovers: the placeholder `zip-code-location-lookup` artisan command, the empty config file, the views directory and a migration stub that would create an empty `zip_code_location_lookup_table` when published.
+
+### What's Changed
+
+* refactor!: drop the unused Postcode.tech integration by @Baspa in https://github.com/Baspa/zip-code-location-lookup/pull/20
+
+**Full Changelog**: https://github.com/Baspa/zip-code-location-lookup/compare/v0.3.1...v0.4.0
+
 ## v0.3.1 - 2026-11-19
 
 ### Fixes
