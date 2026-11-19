@@ -5,7 +5,7 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/baspa/zip-code-location-lookup/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/baspa/zip-code-location-lookup/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/baspa/zip-code-location-lookup.svg?style=flat-square)](https://packagist.org/packages/baspa/zip-code-location-lookup)
 
-This package allows you to lookup the geographic location of a zip code by combining the [Postcode.tech](https://postcode.tech/) API with the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview).
+This package looks up the street, city and coordinates of a Dutch zip code and house number with the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview). When geocoding only finds the postcode area, it falls back to the Google Places API and reverse geocoding to find the street.
 
 ## Requirements
 
@@ -55,33 +55,22 @@ return [
 ```php
 use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookup;
 
-// With Google Maps integration (default)
-$lookup = new ZipCodeLocationLookup();
+$result = (new ZipCodeLocationLookup())->lookup(zipCode: '1012JS', number: 1);
 
-// Without Google Maps integration
-$lookup = new ZipCodeLocationLookup(false);
-
-// Lookup a zip code
-$result = $lookup->lookup(zipCode: '1011AB', number: 1);
-
-// Returns an array containing:
-// - postcode: The normalized postcode
-// - street: Street name
-// - city: City name
-// - municipality: Municipality name
-// - province: Province name
-// - lat: Latitude coordinate
-// - lng: Longitude coordinate
-$result = [
-    'postcode' => '1011 AB',
-    'street' => 'Dam',
-    'city' => 'Amsterdam',
-    'municipality' => 'Amsterdam',
-    'province' => 'Noord-Holland',
-    'lat' => 52.373169,
-    'lng' => 4.893379
-];
+// [
+//     'street' => 'Dam',
+//     'houseNumber' => 1,
+//     'postcode' => '1012JS',
+//     'city' => 'Amsterdam',
+//     'municipality' => 'Amsterdam',
+//     'province' => 'Noord-Holland',
+//     'country' => 'NLD',
+//     'lat' => 52.373169,
+//     'lng' => 4.893379,
+// ]
 ```
+
+`lookup()` throws an `InvalidArgumentException` when the zip code can't be geocoded, and the constructor throws one when an API key is missing.
 
 ## Testing
 
