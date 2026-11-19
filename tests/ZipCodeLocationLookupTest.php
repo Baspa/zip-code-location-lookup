@@ -22,7 +22,6 @@ function addressComponent(string $type, string $name): array
 }
 
 beforeEach(function () {
-    config()->set('services.postcode_tech.api_key', 'postcode-tech-key');
     config()->set('services.google.api_key', 'google-key');
 
     Http::preventStrayRequests();
@@ -99,15 +98,9 @@ it('throws when the zip code cannot be geocoded', function () {
     (new ZipCodeLocationLookup)->lookup('0000XX', 1);
 })->throws(InvalidArgumentException::class, 'Unable to geocode the provided zip code');
 
-it('requires Google Maps for a lookup', function () {
-    (new ZipCodeLocationLookup(false))->lookup('1012JS', 1);
-})->throws(InvalidArgumentException::class, 'Google Maps is required for address lookup');
-
-it('throws when the Postcode.tech API key is missing', function () {
-    config()->set('services.postcode_tech.api_key', null);
-
-    new ZipCodeLocationLookup;
-})->throws(InvalidArgumentException::class, 'Postcode.tech API key must be configured in services config');
+it('needs only a Google Maps API key', function () {
+    expect(new ZipCodeLocationLookup)->toBeInstanceOf(ZipCodeLocationLookup::class);
+});
 
 it('throws when the Google Maps API key is missing', function () {
     config()->set('services.google.api_key', null);

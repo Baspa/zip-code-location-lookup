@@ -39,6 +39,13 @@ All notable changes to `zip-code-location-lookup` will be documented in this fil
 
 ## v0.2.0 - 2026-04-07
 
+### What's new
+
+- **Laravel 12 support.** Laravel 9, 10, 11 and 12 are supported.
+- **Every lookup goes through the Google Geocoding API** (first released in v0.1.5–v0.1.7). `lookup()` no longer queries Postcode.tech, although the constructor still requires its API key. With `useGoogleMaps: false`, `lookup()` throws an `InvalidArgumentException`.
+- **More accurate street names and coordinates.** When geocoding only finds the postcode area, the address is looked up through the Google Places API and only accepted if the postcode matches. If the house number differs, the street is geocoded again with the requested number. Reverse geocoding is the last fallback, so a key without the Places API enabled still works.
+- `country` is returned as `NLD`, `BEL`, `DEU` or `LUX` for those four countries.
+
 ### What's Changed
 
 * Bump dependabot/fetch-metadata from 2.2.0 to 2.3.0 by @dependabot[bot] in https://github.com/Baspa/zip-code-location-lookup/pull/1
