@@ -35,8 +35,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Baspa\\ZipCodeLocationLookup\\": "src/",
-            "Baspa\\ZipCodeLocationLookup\\Database\\Factories\\": "database/factories/"
+            "Baspa\\ZipCodeLocationLookup\\": "src/"
         }
     },
     "autoload-dev": {
