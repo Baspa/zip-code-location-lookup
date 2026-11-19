@@ -2,6 +2,20 @@
 
 All notable changes to `zip-code-location-lookup` will be documented in this file.
 
+## v0.3.1 - 2026-11-19
+
+### Fixes
+
+- **Missing API keys throw the intended `InvalidArgumentException`** ("… API key must be configured in services config") instead of a `TypeError`.
+- **Addresses are sent to Google encoded once.** Every Geocoding request used to encode the address twice, so Google received literal `+` and `%2C` in the address and street queries. Lookups that needed a second geocoding step for the exact house number benefit most.
+- **README:** describes the Google-only lookup, drops the "Without Google Maps" example (`lookup()` has thrown in that mode since v0.1.5), and shows the array `lookup()` actually returns, including `houseNumber` and `country`.
+
+### What's Changed
+
+* fix: clear missing-key errors and single-encoded Google addresses by @Baspa in https://github.com/Baspa/zip-code-location-lookup/pull/19
+
+**Full Changelog**: https://github.com/Baspa/zip-code-location-lookup/compare/v0.3.0...v0.3.1
+
 ## v0.3.0 - 2026-11-19
 
 ### Breaking changes
