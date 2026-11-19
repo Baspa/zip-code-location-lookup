@@ -26,14 +26,13 @@ You can install the package via composer:
 composer require baspa/zip-code-location-lookup
 ```
 
-Then add the Google Maps API and Postcode.tech API keys to your `.env` file:
+Then add your Google Maps API key to your `.env` file. The key needs the Geocoding API; with the Places API also enabled, lookups that only match a postcode area find the street more often.
 
 ```
 GOOGLE_MAPS_API_KEY=your_api_key
-POSTCODE_TECH_API_KEY=your_api_key
 ```
 
-Then add those keys to the `services.php` config file:
+And add it to the `services.php` config file:
 
 ```php
 return [
@@ -42,10 +41,6 @@ return [
 
     'google' => [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
-    ],
-
-    'postcode_tech' => [
-        'api_key' => env('POSTCODE_TECH_API_KEY'),
     ],
 ];
 ```
@@ -70,7 +65,7 @@ $result = (new ZipCodeLocationLookup())->lookup(zipCode: '1012JS', number: 1);
 // ]
 ```
 
-`lookup()` throws an `InvalidArgumentException` when the zip code can't be geocoded, and the constructor throws one when an API key is missing.
+`lookup()` throws an `InvalidArgumentException` when the zip code can't be geocoded, and the constructor throws one when the Google Maps API key is missing.
 
 ## Testing
 

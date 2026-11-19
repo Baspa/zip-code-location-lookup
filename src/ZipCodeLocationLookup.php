@@ -10,29 +10,15 @@ class ZipCodeLocationLookup
 {
     protected string $googleMapsApiKey;
 
-    protected string $postcodeTechApiKey;
-
-    protected bool $useGoogleMaps = true;
-
-    public function __construct(bool $useGoogleMaps = true)
+    public function __construct()
     {
-        $this->useGoogleMaps = $useGoogleMaps;
-        $this->postcodeTechApiKey = $this->configuredApiKey('services.postcode_tech.api_key', 'Postcode.tech');
-
-        if ($useGoogleMaps) {
-            $this->googleMapsApiKey = $this->configuredApiKey('services.google.api_key', 'Google Maps');
-        }
-    }
-
-    private function configuredApiKey(string $configKey, string $service): string
-    {
-        $apiKey = config($configKey);
+        $apiKey = config('services.google.api_key');
 
         if (! is_string($apiKey) || $apiKey === '') {
-            throw new InvalidArgumentException("{$service} API key must be configured in services config");
+            throw new InvalidArgumentException('Google Maps API key must be configured in services config');
         }
 
-        return $apiKey;
+        $this->googleMapsApiKey = $apiKey;
     }
 
     /**
@@ -46,12 +32,7 @@ class ZipCodeLocationLookup
             throw new InvalidArgumentException('Zip code cannot be empty');
         }
 
-        if (! $this->useGoogleMaps) {
-            throw new InvalidArgumentException('Google Maps is required for address lookup');
-        }
-
-        // Use Google Maps for all addresses (Dutch and non-Dutch)
-        $googleMapsResponse = $this->getGoogleMapsResponse([], $zipCode, $number);
+        $googleMapsResponse = $this->getGoogleMapsResponse($zipCode, $number);
 
         if ($googleMapsResponse === null) {
             throw new InvalidArgumentException('Unable to geocode the provided zip code');
@@ -86,28 +67,11 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    protected function getPostcodeTechResponse(string $zipCode, int $number): array
-    {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.$this->postcodeTechApiKey,
-        ])->get('https://postcode.tech/api/v1/postcode?postcode='.urlencode($zipCode).'&number='.$number);
-
-        return $this->parsePostcodeTechResponse($response);
-    }
-
-    /**
-     * @param  array<string, string>  $address
      * @return array<string, mixed>|null
      */
-    protected function getGoogleMapsResponse(array $address, string $zipCode, int $number): ?array
+    protected function getGoogleMapsResponse(string $zipCode, int $number): ?array
     {
-        if (empty($address)) {
-            $query = $zipCode.' '.$number.', Netherlands';
-        } else {
-            $query = $address['street'].' '.$number.' '.$zipCode.' '.$address['city'];
-        }
+        $query = $zipCode.' '.$number.', Netherlands';
 
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
@@ -211,23 +175,6 @@ class ZipCodeLocationLookup
     }
 
     /**
-     * @return array<string, mixed>
-     *
-     * @throws InvalidArgumentException
-     */
-    protected function parsePostcodeTechResponse(Response $response): array
-    {
-        if (! $response->successful()) {
-            throw new InvalidArgumentException(
-                'Failed to fetch data from Postcode.tech API: '.$response->body(),
-                $response->status()
-            );
-        }
-
-        return $response->json();
-    }
-
-    /**
      * @return array<string, mixed>|null
      */
     protected function parseGoogleMapsResponse(Response $response): ?array
@@ -306,28 +253,5 @@ class ZipCodeLocationLookup
         }
 
         return $address;
-    }
-
-    /**
-     * @param  array<string, mixed>  $postcodeTechResponse
-     * @param  array<string, float>  $googleMapsResponse
-     * @return array<string, mixed>
-     */
-    protected function mergeResponses(array $postcodeTechResponse, array $googleMapsResponse): array
-    {
-        return array_merge($postcodeTechResponse, $googleMapsResponse);
-    }
-
-    /**
-     * @param  array<string, mixed>  $response
-     */
-    protected function formatResponse(array $response): string
-    {
-        $json = json_encode($response);
-        if ($json === false) {
-            throw new \RuntimeException('Failed to encode response to JSON');
-        }
-
-        return $json;
     }
 }
