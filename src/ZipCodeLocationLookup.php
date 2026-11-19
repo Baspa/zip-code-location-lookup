@@ -17,18 +17,22 @@ class ZipCodeLocationLookup
     public function __construct(bool $useGoogleMaps = true)
     {
         $this->useGoogleMaps = $useGoogleMaps;
-        $this->postcodeTechApiKey = config('services.postcode_tech.api_key');
-
-        if (empty($this->postcodeTechApiKey)) {
-            throw new InvalidArgumentException('Postcode.tech API key must be configured in services config');
-        }
+        $this->postcodeTechApiKey = $this->configuredApiKey('services.postcode_tech.api_key', 'Postcode.tech');
 
         if ($useGoogleMaps) {
-            $this->googleMapsApiKey = config('services.google.api_key');
-            if (empty($this->googleMapsApiKey)) {
-                throw new InvalidArgumentException('Google Maps API key must be configured in services config');
-            }
+            $this->googleMapsApiKey = $this->configuredApiKey('services.google.api_key', 'Google Maps');
         }
+    }
+
+    private function configuredApiKey(string $configKey, string $service): string
+    {
+        $apiKey = config($configKey);
+
+        if (! is_string($apiKey) || $apiKey === '') {
+            throw new InvalidArgumentException("{$service} API key must be configured in services config");
+        }
+
+        return $apiKey;
     }
 
     /**
@@ -107,7 +111,7 @@ class ZipCodeLocationLookup
 
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
-            'address' => urlencode($query),
+            'address' => $query,
         ]);
 
         $result = $this->parseGoogleMapsResponse($response);
@@ -156,7 +160,7 @@ class ZipCodeLocationLookup
 
                             $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                                 'key' => $this->googleMapsApiKey,
-                                'address' => urlencode($streetQuery),
+                                'address' => $streetQuery,
                             ]);
 
                             $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
@@ -187,7 +191,7 @@ class ZipCodeLocationLookup
 
                     $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                         'key' => $this->googleMapsApiKey,
-                        'address' => urlencode($streetQuery),
+                        'address' => $streetQuery,
                     ]);
 
                     $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
