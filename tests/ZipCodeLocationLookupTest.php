@@ -101,3 +101,15 @@ it('throws when the zip code cannot be geocoded', function () {
 it('requires Google Maps for a lookup', function () {
     (new ZipCodeLocationLookup(false))->lookup('1012JS', 1);
 })->throws(InvalidArgumentException::class, 'Google Maps is required for address lookup');
+
+it('throws when the Postcode.tech API key is missing', function () {
+    config()->set('services.postcode_tech.api_key', null);
+
+    new ZipCodeLocationLookup;
+})->throws(InvalidArgumentException::class, 'Postcode.tech API key must be configured in services config');
+
+it('throws when the Google Maps API key is missing', function () {
+    config()->set('services.google.api_key', null);
+
+    new ZipCodeLocationLookup;
+})->throws(InvalidArgumentException::class, 'Google Maps API key must be configured in services config');
