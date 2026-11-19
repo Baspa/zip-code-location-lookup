@@ -111,7 +111,7 @@ class ZipCodeLocationLookup
 
         $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
             'key' => $this->googleMapsApiKey,
-            'address' => urlencode($query),
+            'address' => $query,
         ]);
 
         $result = $this->parseGoogleMapsResponse($response);
@@ -160,7 +160,7 @@ class ZipCodeLocationLookup
 
                             $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                                 'key' => $this->googleMapsApiKey,
-                                'address' => urlencode($streetQuery),
+                                'address' => $streetQuery,
                             ]);
 
                             $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);
@@ -191,7 +191,7 @@ class ZipCodeLocationLookup
 
                     $streetGeocodeResponse = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                         'key' => $this->googleMapsApiKey,
-                        'address' => urlencode($streetQuery),
+                        'address' => $streetQuery,
                     ]);
 
                     $streetGeocodeResult = $this->parseGoogleMapsResponse($streetGeocodeResponse);

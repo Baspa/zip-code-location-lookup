@@ -1,6 +1,7 @@
 <?php
 
 use Baspa\ZipCodeLocationLookup\ZipCodeLocationLookup;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 function geocodeResponse(array $components, float $lat = 52.373169, float $lng = 4.893379): array
@@ -113,3 +114,93 @@ it('throws when the Google Maps API key is missing', function () {
 
     new ZipCodeLocationLookup;
 })->throws(InvalidArgumentException::class, 'Google Maps API key must be configured in services config');
+
+it('sends the address to the Geocoding API encoded once', function () {
+    Http::fake([
+        'maps.googleapis.com/maps/api/geocode/json*' => Http::response(geocodeResponse([
+            addressComponent('street_number', '1'),
+            addressComponent('route', 'Dam'),
+            addressComponent('locality', 'Amsterdam'),
+            addressComponent('country', 'Netherlands'),
+            addressComponent('postal_code', '1012 JS'),
+        ])),
+    ]);
+
+    (new ZipCodeLocationLookup)->lookup('1012JS', 1);
+
+    Http::assertSent(fn (Request $request) => $request['address'] === '1012JS 1, Netherlands');
+});
+
+it('geocodes the requested house number on the street the Places API found', function () {
+    Http::fake([
+        'maps.googleapis.com/maps/api/geocode/json*' => fn (Request $request) => $request['address'] === 'Dam 1, Amsterdam, Netherlands'
+            ? Http::response(geocodeResponse([
+                addressComponent('street_number', '1'),
+                addressComponent('route', 'Dam'),
+                addressComponent('locality', 'Amsterdam'),
+                addressComponent('country', 'Netherlands'),
+                addressComponent('postal_code', '1012 JS'),
+            ], 52.373169, 4.893379))
+            : Http::response(geocodeResponse([
+                addressComponent('locality', 'Amsterdam'),
+                addressComponent('country', 'Netherlands'),
+                addressComponent('postal_code', '1012 JS'),
+            ], 52.37, 4.89)),
+        'maps.googleapis.com/maps/api/place/findplacefromtext/json*' => Http::response([
+            'status' => 'OK',
+            'candidates' => [['place_id' => 'place-1']],
+        ]),
+        'maps.googleapis.com/maps/api/place/details/json*' => Http::response([
+            'status' => 'OK',
+            'result' => [
+                'formatted_address' => 'Dam 2, 1012 JS Amsterdam, Netherlands',
+                'geometry' => ['location' => ['lat' => 52.3735, 'lng' => 4.8935]],
+                'address_components' => [
+                    addressComponent('street_number', '2'),
+                    addressComponent('route', 'Dam'),
+                    addressComponent('locality', 'Amsterdam'),
+                    addressComponent('country', 'Netherlands'),
+                    addressComponent('postal_code', '1012 JS'),
+                ],
+            ],
+        ]),
+    ]);
+
+    expect((new ZipCodeLocationLookup)->lookup('1012JS', 1))
+        ->street->toBe('Dam')
+        ->lat->toBe(52.373169)
+        ->lng->toBe(4.893379);
+});
+
+it('geocodes the requested house number on the street found by reverse geocoding', function () {
+    Http::fake([
+        'maps.googleapis.com/maps/api/geocode/json*' => fn (Request $request) => match (true) {
+            isset($request['latlng']) => Http::response(geocodeResponse([
+                addressComponent('route', 'Dam'),
+                addressComponent('locality', 'Amsterdam'),
+                addressComponent('country', 'Netherlands'),
+            ], 52.37, 4.89)),
+            $request['address'] === 'Dam 1, Amsterdam' => Http::response(geocodeResponse([
+                addressComponent('street_number', '1'),
+                addressComponent('route', 'Dam'),
+                addressComponent('locality', 'Amsterdam'),
+                addressComponent('country', 'Netherlands'),
+                addressComponent('postal_code', '1012 JS'),
+            ], 52.373169, 4.893379)),
+            default => Http::response(geocodeResponse([
+                addressComponent('locality', 'Amsterdam'),
+                addressComponent('country', 'Netherlands'),
+                addressComponent('postal_code', '1012 JS'),
+            ], 52.37, 4.89)),
+        },
+        'maps.googleapis.com/maps/api/place/findplacefromtext/json*' => Http::response([
+            'status' => 'ZERO_RESULTS',
+            'candidates' => [],
+        ]),
+    ]);
+
+    expect((new ZipCodeLocationLookup)->lookup('1012JS', 1))
+        ->street->toBe('Dam')
+        ->lat->toBe(52.373169)
+        ->lng->toBe(4.893379);
+});
