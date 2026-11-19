@@ -7,6 +7,17 @@
 
 This package allows you to lookup the geographic location of a zip code by combining the [Postcode.tech](https://postcode.tech/) API with the [Google Geocoding API](https://developers.google.com/maps/documentation/geocoding/overview).
 
+## Requirements
+
+- PHP 8.3 or higher
+- Laravel 13
+
+On Laravel 9 to 12 or PHP 8.1 and 8.2, use version 0.2 of this package:
+
+```bash
+composer require baspa/zip-code-location-lookup:^0.2
+```
+
 ## Installation
 
 You can install the package via composer:
